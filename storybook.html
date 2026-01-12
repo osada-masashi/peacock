@@ -2,184 +2,307 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Flipbook</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Peacock-Storybook</title>
 <style>
-:root{--book-width:1049px;--book-height:709px;--page-bg:#fdfbf7;--page-thickness:5px;--transition-speed:1.2s;}
-*{box-sizing:border-box;}
-body{
-  margin:0;
-  padding:clamp(8px,2vw,24px);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100svh;
-  font-family:system-ui,sans-serif;
-  background-image:url("./pict/background.png");
-  background-size:cover;
-  background-position:center;
-  overflow:hidden;
-  -webkit-text-size-adjust:100%;
-}
-.flipbook-container{
-  /* Desktop size */
-  width:var(--book-width);
-  height:var(--book-height);
-
-  /* Responsive override */
-  width:min(96vw, calc(92svh * 1.479549), var(--book-width));
-  height:min(92svh, calc(96vw / 1.479549), var(--book-height));
-
-  perspective:3000px;
-  position:relative;
-}
-.book{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform var(--transition-speed) cubic-bezier(0.645,0.045,0.355,1);}
-.page{position:absolute;top:0;left:50%;width:50%;height:100%;transform-origin:left center;transition:transform var(--transition-speed) cubic-bezier(0.645,0.045,0.355,1);transform-style:preserve-3d;cursor:pointer;touch-action:manipulation;}
-
-.page-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;transform-style:preserve-3d;}
-.page-content{position:absolute;top:0;left:0;width:100%;height:100%;background-color:var(--page-bg);overflow:hidden;display:flex;justify-content:center;align-items:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
-.page-front{transform:translateZ(calc(var(--page-thickness)/2));}
-.page-back{transform:rotateY(180deg) translateZ(calc(var(--page-thickness)/2));}
-.page.flipped{transform:rotateY(-180deg);}
-.page:not(.flipped){z-index:calc(100 - var(--leaf-index));}
-.page.flipped{z-index:calc(var(--leaf-index));}
-.full-page-media{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;background:#f3f4f6;}
-
-@media (max-width: 600px){
-  :root{--page-thickness:3px;--transition-speed:0.9s;}
-  .flipbook-container{perspective:2000px;}
-}
-@media (prefers-reduced-motion: reduce){
-  :root{--transition-speed:0.01s;}
+:root {
+    /* 基準サイズ (アスペクト比計算用) */
+    --base-width: 840;
+    --base-height: 594;
+    --aspect-ratio: calc(var(--base-width) / var(--base-height));
+    
+    --page-bg: #fdfbf7;
+    --page-thickness: 5px;
+    --transition-speed: 1.2s; 
 }
 
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* モバイルのアドレスバー対策: svhを使用 */
+    min-height: 100svh;
+    width: 100vw;
+    font-family: system-ui, sans-serif;
+    background-image: url("./pict/background.png");
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+    /* タップ遅延などを防ぐ */
+    touch-action: manipulation;
+}
+
+.flipbook-container {
+    position: relative;
+    perspective: 3000px;
+    transform-style: preserve-3d;
+    transition: transform 0.6s ease-out; /* コンテナ自体の移動アニメーション */
+}
+
+/* --- PC / タブレット (見開きモード) のサイズ計算 --- */
+@media (min-width: 601px) {
+    .flipbook-container {
+        /* 画面幅の96%以内、高さ92svh以内、かつ最大ピクセルを超えないようにアスペクト比維持 */
+        height: min(709px, 92svh, 96vw / var(--aspect-ratio));
+        width: calc(min(709px, 92svh, 96vw / var(--aspect-ratio)) * var(--aspect-ratio));
+    }
+
+    .page {
+        width: 50%;
+    }
+}
+
+/* --- スマホ (単ページモード) のサイズ計算 --- */
+@media (max-width: 600px) {
+    .flipbook-container {
+        /* 【重要】スマホでも構造上は「見開き(2ページ分)」として計算します。
+           ページ幅を50%のまま維持するため、コンテナ幅は「1ページ幅 × 2」にします。
+        */
+        
+        /* 1ページのアスペクト比 = (全幅 / 2) / 高さ */
+        --single-page-aspect: calc((var(--base-width) / 2) / var(--base-height));
+        
+        /* 画面の幅(94vw)または高さ(85svh)に合わせて1ページのサイズを決める */
+        /* 高さ基準の場合の1ページ幅 */
+        --h-based-width: calc(85svh * var(--single-page-aspect));
+        
+        /* 幅基準の場合の1ページ幅 (最大94vw) */
+        --w-based-width: 94vw;
+        
+        /* 小さい方を採用して画面に収める */
+        --one-page-width: min(var(--w-based-width), var(--h-based-width));
+        --one-page-height: calc(var(--one-page-width) / var(--single-page-aspect));
+
+        /* コンテナ幅は2ページ分確保する */
+        width: calc(var(--one-page-width) * 2);
+        height: var(--one-page-height);
+    }
+
+    .page {
+        width: 100%;
+    }
+}
+
+.book {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform var(--transition-speed) cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.page {
+    position: absolute;
+    top: 0;
+    /* ページ配置の原点は中央(背表紙) */
+    left: 50%;
+    height: 100%;
+    transform-origin: left center;
+    transition: transform var(--transition-speed) cubic-bezier(0.645, 0.045, 0.355, 1);
+    transform-style: preserve-3d;
+    cursor: pointer;
+}
+
+.page-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.page-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--page-bg);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.page-front {
+    transform: translateZ(calc(var(--page-thickness)/2));
+}
+
+.page-back {
+    transform: rotateY(180deg) translateZ(calc(var(--page-thickness)/2));
+}
+
+.page.flipped {
+    transform: rotateY(-180deg);
+}
+
+/* Z-index管理: めくっていないページは番号順、めくったページは逆順 */
+.page:not(.flipped) {
+    z-index: calc(100 - var(--leaf-index));
+}
+.page.flipped {
+    z-index: calc(var(--leaf-index));
+}
+
+.full-page-media {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f3f4f6;
+}
+
+/* 動きを減らす設定への対応 */
+@media (prefers-reduced-motion: reduce) {
+    .book, .page, .flipbook-container {
+        transition: transform 0s !important;
+        --transition-speed: 0s;
+    }
+}
 </style>
 </head>
 <body>
-    <div class="flipbook-container">
+    <div class="flipbook-container" id="container">
         <div class="book" id="book">
+            <!-- Leaf 1 (Page 00, 01) -->
             <div class="page" data-leaf="1" style="--leaf-index:1">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page00.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page00.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 0">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page01.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page01.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 1">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 2 (Page 02, 03) -->
             <div class="page" data-leaf="2" style="--leaf-index:2">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page02.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page02.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 2">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page03.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page03.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 3">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 3 (Page 04, 05) -->
             <div class="page" data-leaf="3" style="--leaf-index:3">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page04.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page04.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 4">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page05.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page05.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 5">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 4 (Page 06, 07) -->
             <div class="page" data-leaf="4" style="--leaf-index:4">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page06.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page06.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 6">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page07.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page07.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 7">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 5 (Page 08, 09) -->
             <div class="page" data-leaf="5" style="--leaf-index:5">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page08.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page08.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 8">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page09.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page09.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 9">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 6 (Page 10, 11) -->
             <div class="page" data-leaf="6" style="--leaf-index:6">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page10.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page10.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 10">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page11.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page11.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 11">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 7 (Page 12, 13) -->
             <div class="page" data-leaf="7" style="--leaf-index:7">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page12.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page12.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 12">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page13.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page13.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 13">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 8 (Page 14, 15) -->
             <div class="page" data-leaf="8" style="--leaf-index:8">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page14.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page14.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 14">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page15.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page15.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 15">
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Leaf 9 (Page 16, 99) -->
             <div class="page" data-leaf="9" style="--leaf-index:9">
                 <div class="page-wrapper">
                     <div class="page-content page-front">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page16.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page16.png" style="width:100%;height:100%;object-fit:cover;" alt="Page 16">
                         </div>
                     </div>
                     <div class="page-content page-back">
                         <div class="full-page-media">
-                            <img src="./pict/Peacock_Storybook_Page99.png" style="width:100%;height:100%;object-fit:cover;display:block;">
+                            <img src="./pict/Peacock_Storybook_Page99.png" style="width:100%;height:100%;object-fit:cover;" alt="End">
                         </div>
                     </div>
                 </div>
@@ -187,29 +310,226 @@ body{
         </div>
     </div>
     <script>
-        const flipSound=new Audio('data:audio/mpeg;base64,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');
-        let currentLeaf=0,totalLeaves=9;
-        function flipTo(n){if(n<0||n>totalLeaves||n===currentLeaf)return;if(flipSound){flipSound.currentTime=0;flipSound.volume=0.5;flipSound.play().catch(()=>{});}currentLeaf=n;document.querySelectorAll('.page').forEach((p,i)=>{p.classList.toggle('flipped',(i+1)<=n);});updateTransform();
-        window.addEventListener('resize', updateTransform);}
-        function updateTransform(){
-          const b=document.getElementById('book');
-          const isSmall=window.matchMedia('(max-width: 600px)').matches;
-          const edgeShift=isSmall? '-12%':'-25%';
-          const edgeShiftR=isSmall? '12%':'25%';
-          const edgeAngle=isSmall? '10deg':'20deg';
-          const tilt=isSmall? '3deg':'5deg';
-          if(currentLeaf===0){
-            b.style.transform=`translateX(${edgeShift}) rotateY(${edgeAngle}) rotateX(${tilt})`;
-          }else if(currentLeaf===totalLeaves){
-            b.style.transform=`translateX(${edgeShiftR}) rotateY(-${edgeAngle}) rotateX(${tilt})`;
-          }else{
-            b.style.transform='translateX(0) rotateY(0) rotateX(0)';
-          }
+        const flipSound = new Audio('data:audio/mpeg;base64,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');
+        
+        // 状態管理
+        let currentLeaf = 0;
+        const totalLeaves = 9;
+        
+        // モバイル判定のしきい値
+        const MOBILE_BREAKPOINT = 600;
+
+        // 音声再生関数
+        function playFlipSound() {
+            if (flipSound) {
+                flipSound.currentTime = 0;
+                flipSound.volume = 0.5;
+                flipSound.play().catch(() => {});
+            }
         }
-        document.querySelectorAll('.page').forEach(p=>{p.onclick=()=>{p.classList.contains('flipped')?flipTo(currentLeaf-1):flipTo(currentLeaf+1);}});
-        document.onkeydown=e=>{if(e.key==='ArrowRight')flipTo(currentLeaf+1);if(e.key==='ArrowLeft')flipTo(currentLeaf-1);};
+
+        // ページ遷移のメイン関数
+        // isNext: trueなら次へ、falseなら前へ
+        function advance(isNext) {
+            const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+
+            if (isMobile) {
+                // スマホ：ステップ単位で進む (0=Leaf0右, 1=Leaf1左, 2=Leaf1右, 3=Leaf2左...)
+                let currentStep = getMobileStepFromLeaf(currentLeaf);
+                
+                let nextStep;
+                if (isNext) {
+                    nextStep = currentStep + 1;
+                } else {
+                    nextStep = currentStep - 1;
+                }
+                
+                // 範囲チェック (Leaf 0の右 ～ Leaf 9の左/右まで)
+                // ステップの最大値は totalLeaves*2 - 1 (最後のページの裏側まで)
+                // ただし今回は最終ページが背表紙(99)で終わるので、totalLeavesまで行けるように調整
+                if (nextStep < 0) return;
+                if (nextStep > totalLeaves * 2) return; // 制限
+
+                const newLeafState = getLeafFromMobileStep(nextStep);
+                
+                // ページめくりが必要か確認
+                if (newLeafState.leaf !== currentLeaf) {
+                    // めくり動作が必要な場合だけ音を鳴らす
+                    if(newLeafState.leaf >= 0 && newLeafState.leaf <= totalLeaves) {
+                        playFlipSound();
+                        updateFlipState(newLeafState.leaf);
+                        currentLeaf = newLeafState.leaf;
+                    }
+                }
+                // カメラ位置(Transform)の更新 (めくり不要でもカメラ移動はある)
+                updateTransform();
+
+            } else {
+                // PC：Leaf単位で進む
+                let nextLeaf = isNext ? currentLeaf + 1 : currentLeaf - 1;
+                
+                if (nextLeaf < 0 || nextLeaf > totalLeaves) return;
+                
+                playFlipSound();
+                currentLeaf = nextLeaf;
+                updateFlipState(currentLeaf);
+                updateTransform();
+            }
+        }
+
+        // 指定したLeaf番号までめくる/戻す (DOM操作のみ)
+        function updateFlipState(n) {
+            document.querySelectorAll('.page').forEach((p, i) => {
+                // n番目以下のページは「めくられた状態(flipped)」にする
+                p.classList.toggle('flipped', (i + 1) <= n);
+            });
+        }
+
+        // 表示（Transform）の更新
+        function updateTransform() {
+            const b = document.getElementById('book');
+            const c = document.getElementById('container');
+            const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+
+            if (isMobile) {
+                // --- スマホ用ビュー (カメラ移動ロジック) ---
+                const step = getMobileStepFromLeaf(currentLeaf);
+                const isViewingRight = (step % 2 === 0);
+                
+                // コンテナを左右にずらして、左ページor右ページを画面中央に持ってくる
+                const translateX = isViewingRight ? '-50%' : '50%';
+                
+                if (currentLeaf === 0) {
+                    // 表紙
+                    b.style.transform = 'translateX(-50%) rotateY(20deg) rotateX(5deg)';
+                } else if (currentLeaf === totalLeaves) {
+                    // 裏表紙
+                    b.style.transform = 'translateX(50%) rotateY(-20deg) rotateX(5deg)';
+                } else {
+                    // 中ページ（フラット）
+                    b.style.transform = `translateX(${translateX}) rotateY(0deg) rotateX(0deg)`;
+                }
+                
+            } else {
+                // --- PC用ビュー (3D傾きあり) ---
+                if (currentLeaf === 0) {
+                    // 表紙
+                    b.style.transform = 'translateX(-25%) rotateY(20deg) rotateX(5deg)';
+                } else if (currentLeaf === totalLeaves) {
+                    // 裏表紙
+                    b.style.transform = 'translateX(25%) rotateY(-20deg) rotateX(5deg)';
+                } else {
+                    // 中ページ（フラット）
+                    b.style.transform = 'translateX(0) rotateY(0) rotateX(0)';
+                }
+            }
+        }
+
+        // --- ヘルパー関数: Leaf番号とスマホ表示ステップの変換 ---
+        // Step 0: Leaf 0 (未めくり), 右側(Page0)を見る
+        // Step 1: Leaf 1 (めくり済), 左側(Page1)を見る
+        // Step 2: Leaf 1 (めくり済), 右側(Page2)を見る
+        // Step 3: Leaf 2 (めくり済), 左側(Page3)を見る
+        
+        // スマホ用に追加の状態変数
+        // 'left' (前のページの裏 = 左側) または 'right' (次のページの表 = 右側)
+        // 初期状態はLeaf0で右側(Page0)を見ている
+        let mobileViewSide = 'right'; 
+
+        // オーバーライド: スマホ用ステップ管理
+        function getMobileStepFromLeaf(leaf) {
+            // 現在のLeaf数と、左右どちらを見ているかでステップ数を算出
+            // Leaf 0, Right = Step 0
+            // Leaf 1, Left  = Step 1
+            // Leaf 1, Right = Step 2
+            // Leaf 2, Left  = Step 3
+            if (leaf === 0) return 0;
+            const base = (leaf * 2) - 1; // Leaf 1 -> 1
+            return mobileViewSide === 'left' ? base : base + 1;
+        }
+
+        function getLeafFromMobileStep(step) {
+            // ステップ数から、あるべきLeaf数と左右状態を逆算
+            // Step 0 -> Leaf 0, Right
+            // Step 1 -> Leaf 1, Left
+            // Step 2 -> Leaf 1, Right
+            // Step 3 -> Leaf 2, Left
+            
+            if (step === 0) return { leaf: 0, side: 'right' };
+            
+            const isLeft = (step % 2 !== 0);
+            const leaf = isLeft ? (step + 1) / 2 : step / 2;
+            
+            // 副作用としてsideを更新
+            mobileViewSide = isLeft ? 'left' : 'right';
+            
+            return { leaf: leaf, side: isLeft ? 'left' : 'right' };
+        }
+
+        // --- イベントリスナー ---
+
+        // クリック操作
+        // スマホでは「画面の右半分」タップで次、「左半分」タップで戻る
+        // PCでは「クリックされたページ」に応じて判定
+        document.body.onclick = (e) => {
+            const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+            
+            if (isMobile) {
+                // 画面幅の半分より右なら「次へ」、左なら「前へ」
+                const isRightSide = e.clientX > window.innerWidth / 2;
+                advance(isRightSide);
+            } else {
+                // PC: クリックされた要素が .page の場合、そのページが flipped かどうかで判断
+                const targetPage = e.target.closest('.page');
+                if (targetPage) {
+                    if (targetPage.classList.contains('flipped')) {
+                        // めくられたページをクリック -> 戻る
+                        advance(false);
+                    } else {
+                        // まだめくってないページをクリック -> 進む
+                        advance(true);
+                    }
+                    return;
+                }
+
+                // 表紙だけは「本の見えている範囲」ならどこを押しても次へ
+                if (currentLeaf === 0) {
+                  const container = document.getElementById('container');
+                  const rect = container.getBoundingClientRect();
+                  const inside =
+                    e.clientX >= rect.left && e.clientX <= rect.right &&
+                    e.clientY >= rect.top  && e.clientY <= rect.bottom;
+
+                  if (inside) advance(true);
+                }
+
+                // 裏表紙だけは「本の見えている範囲」ならどこを押しても戻る
+                if (currentLeaf === totalLeaves) {
+                  const container = document.getElementById('container');
+                  const rect = container.getBoundingClientRect();
+                  const inside =
+                    e.clientX >= rect.left && e.clientX <= rect.right &&
+                    e.clientY >= rect.top  && e.clientY <= rect.bottom;
+
+                  if (inside) advance(false);
+                }
+            }
+        };
+
+        // キーボード操作
+        document.onkeydown = e => {
+            if (e.key === 'ArrowRight') advance(true);
+            if (e.key === 'ArrowLeft') advance(false);
+        };
+
+        // リサイズ時の調整
+        window.onresize = () => {
+            // モバイル⇔PC切り替え時に変な位置にならないよう再計算
+            updateTransform();
+        };
+
+        // 初期化
         updateTransform();
     </script>
 </body>
-
 </html>
