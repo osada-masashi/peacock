@@ -66,12 +66,12 @@ body {
         /* 1ページのアスペクト比 = (全幅 / 2) / 高さ */
         --single-page-aspect: calc((var(--base-width) / 2) / var(--base-height));
         
-        /* 画面の幅(94vw)または高さ(85svh)に合わせて1ページのサイズを決める */
+        /* 画面の幅(105vw)または高さ(85svh)に合わせて1ページのサイズを決める */
         /* 高さ基準の場合の1ページ幅 */
         --h-based-width: calc(85svh * var(--single-page-aspect));
         
-        /* 幅基準の場合の1ページ幅 (最大94vw) */
-        --w-based-width: 94vw;
+        /* 幅基準の場合の1ページ幅 (最大105vw) */
+        --w-based-width: 105vw;
         
         /* 小さい方を採用して画面に収める */
         --one-page-width: min(var(--w-based-width), var(--h-based-width));
